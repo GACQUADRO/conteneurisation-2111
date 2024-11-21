@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./front/my-app
+    ports:
+      - "3000:3000"
+    networks:
+      - proxy
+    environment:
+      - NODE_ENV=production
+
+  backend:
+    build:
+      context: ./back
+    ports:
+      - "6000:6000"
+    networks:
+      - proxy
+    environment:
+      - DATABASE_URL=postgres://myuser:mysecretpassword@postgres:5432/mydb
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:latest
+    container_name: my-postgres
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: mydb
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - proxy
+    ports:
+      - "5432:5432"
+
+  nginx:
+    build:
+      context: ./nginx
+    ports:
+      - "80:80"
+    networks:
+      - proxy
+    depends_on:
+      - frontend
+      - backend
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+
+networks:
+  proxy:
+    driver: bridge
+
+volumes:
+  postgres-data:
+    driver: local
